@@ -70,12 +70,19 @@ pub const PCM_AUDIO_CODECS: &str = "flac";
 /// `dual`), nothing wider, so a multichannel FLAC stays a server conversion.
 pub const PCM_MAX_CHANNELS: u32 = 2;
 
-/// The rates the PCM path plays at their own speed: libpf's `LUT_SampleRateType` (8, 12, 16,
-/// 22.05, 24, 32 and 48 kHz) plus 44.1 kHz, which the table does not list but plays correctly.
-/// Any other `pcmInfo.sampleRate` plays slow and without an error: a 96 kHz FLAC audibly slow, a
-/// 192 kHz one slower still (measured on webOS 4.4.3, an OLED55B8, where 44.1 and 48 kHz played
-/// right). The table was read from libpf-1.0 on that set.
+/// The rates the app converts to [`PCM_DECLARED_RATE`] and feeds as PCM: libpf's
+/// `LUT_SampleRateType` (8, 12, 16, 22.05, 24, 32 and 48 kHz) plus 44.1 kHz. Any other
+/// `pcmInfo.sampleRate` played slow and without an error (a 96 kHz FLAC audibly slow, a 192 kHz one
+/// slower still, measured on webOS 4.4.3, an OLED55B8). The table was read from libpf-1.0 on that
+/// set.
 pub const PCM_SAMPLE_RATES: [u32; 8] = [8_000, 12_000, 16_000, 22_050, 24_000, 32_000, 44_100, 48_000];
+
+/// The rate every app-decoded PCM Load declares and is fed at. A webOS 6.5.3 C1 runs the PCM input
+/// at 44.1 kHz whatever `pcmInfo.sampleRate` says (GStreamer caps `rate=44100` for both a 32 and a
+/// 48 kHz file; a 48 kHz file's 10 s beep came every 10.8 s, 32 and 22.05 kHz trembled), while the
+/// OLED55B8 honours the declared rate. 44.1 kHz is right on both, so the app converts the file to
+/// this rate itself (`ff_pcm::Resampler`) and declares it.
+pub const PCM_DECLARED_RATE: u32 = 44_100;
 
 /// Whether `codec` is one the app decodes itself and feeds as PCM ([`PCM_AUDIO_CODECS`]).
 pub fn is_pcm_codec(codec: &str) -> bool {

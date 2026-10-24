@@ -5476,13 +5476,13 @@ pub(crate) fn pcm_format_of(audio: Option<&CarriedAudio>, codec: &str) -> Result
         return Err(format!("{codec}: {} channels (the PCM path carries 1..={max})", a.channels));
     }
     let rates = &plx_platform::devcaps::PCM_SAMPLE_RATES;
-    let sample_rate = u32::try_from(a.sample_rate).ok().filter(|r| rates.contains(r));
-    let Some(sample_rate) = sample_rate else {
+    if !u32::try_from(a.sample_rate).is_ok_and(|r| rates.contains(&r)) {
         return Err(format!(
-            "{codec}: sampling rate {} is not one the PCM input plays at its own speed",
+            "{codec}: sampling rate {} is not one the PCM path converts",
             a.sample_rate
         ));
-    };
+    }
+    let sample_rate = plx_platform::devcaps::PCM_DECLARED_RATE;
     let bits = if (1..=16).contains(&a.bit_depth) { 16 } else { 32 };
     Ok(PcmFormat { sample_rate, bits, channels: a.channels as u32 })
 }
@@ -5499,9 +5499,12 @@ mod pcm_format_tests {
     }
 
     #[test]
-    fn a_stereo_flac_declares_its_own_rate_and_a_bit_exact_width() {
+    fn a_stereo_flac_declares_the_panels_pcm_rate_and_a_bit_exact_width() {
+        // every rate is declared at the one rate the panel's PCM input really runs at; the
+        // decoder converts the file to it
         assert_eq!(pcm_format_of(Some(&flac(2, 48_000, 16)), "flac"),
-            Ok(PcmFormat { sample_rate: 48_000, bits: 16, channels: 2 }));
+            Ok(PcmFormat { sample_rate: 44_100, bits: 16, channels: 2 }));
+        assert_eq!(pcm_format_of(Some(&flac(2, 32_000, 16)), "flac").unwrap().sample_rate, 44_100);
         assert_eq!(pcm_format_of(Some(&flac(1, 44_100, 24)), "flac"),
             Ok(PcmFormat { sample_rate: 44_100, bits: 32, channels: 1 }));
         // an unstated depth is fed wide: never truncate a sample nobody measured
