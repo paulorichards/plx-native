@@ -288,9 +288,9 @@ fn profile_for_delivery(caps: &plx_platform::devcaps::Caps, delivery: TranscodeD
             "+add-limitation(scope=videoAudioCodec&scopeName={codec}&type=upperBound&name=audio.channels&value={channels}&replace=true)"
         ))
         .collect::<String>();
-    // The PCM path plays only some rates at their own speed (`devcaps::PCM_SAMPLE_RATES`, 48 kHz
-    // at most): above that PMS converts, as it does for a FLAC wider than stereo. A rate under
-    // 48 kHz that is not in the table is refused by the planner instead.
+    // The PCM path converts only some rates (`devcaps::PCM_SAMPLE_RATES`, 48 kHz at most): above
+    // that PMS converts, as it does for a FLAC wider than stereo. A rate under 48 kHz that is not
+    // in the table is refused by the planner instead.
     let pcm_ceiling = plx_platform::devcaps::PCM_SAMPLE_RATES.iter().max().copied().unwrap_or(0);
     let audio_limits = audio_limits
         + &plx_platform::devcaps::PCM_AUDIO_CODECS
